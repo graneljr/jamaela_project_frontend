@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../services/api";
+import { validateAddress } from "../utils/validation";
 
 function CheckoutForm({ cart, cartIsEmpty, clearCart, user }) {
   const [address, setAddress] = useState("");
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitting) return;
     setSuccess(false);
     if (cartIsEmpty) return setMessage("Your cart is empty.");
-    if (!address.trim()) return setMessage("Please enter your delivery address.");
+    const validationMessage = validateAddress(address);
+    if (validationMessage) return setMessage(validationMessage);
 
+    setSubmitting(true);
     try {
       await api.createOrder({ address, items: cart.map(({ id, quantity }) => ({ productId: id, quantity })) });
       setMessage("Order successfully submitted. You can track it in your dashboard.");
@@ -21,6 +26,8 @@ function CheckoutForm({ cart, cartIsEmpty, clearCart, user }) {
       clearCart();
     } catch (error) {
       setMessage(error.message || "Could not place your order. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -38,14 +45,15 @@ function CheckoutForm({ cart, cartIsEmpty, clearCart, user }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-sky-100 bg-white p-6">
-      <h2 className="text-xl font-extrabold text-zinc-900">Checkout Details</h2>
+    <form onSubmit={handleSubmit} className="dashboard-panel p-5 sm:p-6">
+      <h2 className="text-xl font-extrabold text-slate-900">Checkout details</h2>
       <p className="mt-2 text-sm text-zinc-600">Ordering as {user.fullName} ({user.email})</p>
       <label className="mt-5 block text-sm font-bold text-zinc-700">Delivery Address
-        <textarea required rows="4" value={address} onChange={(event) => setAddress(event.target.value)} className="mt-1 w-full resize-none rounded-lg border border-sky-200 bg-white px-4 py-3 font-normal outline-none focus:border-sky-400" />
+        <textarea required minLength="8" maxLength="300" rows="4" autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street, barangay, city, province, and postal code" className="field-control mt-1 resize-y" />
+        <span className="mt-1 block text-xs font-normal text-slate-400">{address.length}/300 characters</span>
       </label>
-      {message && <p className={`mt-4 text-sm font-bold ${success ? "text-emerald-600" : "text-rose-500"}`}>{message}</p>}
-      <button type="submit" className="mt-5 w-full rounded-full bg-sky-400 px-6 py-3 font-extrabold text-white hover:bg-sky-500">Place Order</button>
+      {message && <p role={success ? "status" : "alert"} className={`mt-4 rounded-lg px-3 py-2 text-sm font-bold ${success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{message}</p>}
+      <button type="submit" disabled={submitting || cartIsEmpty} className="mt-5 min-h-12 w-full rounded-xl bg-sky-500 px-6 py-3 font-extrabold text-white shadow-sm transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Placing order…" : "Place order"}</button>
     </form>
   );
 }

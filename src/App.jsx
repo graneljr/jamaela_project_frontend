@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import UserOrders from "./pages/UserOrders";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminOrders from "./pages/AdminOrders";
 import AdminStock from "./pages/AdminStock";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -62,13 +63,16 @@ function App() {
   }
 
   function addToCart(product, quantity) {
+    if (!Number.isInteger(quantity) || quantity < 1) return;
+    const maxQuantity = Math.min(product.stock, 99);
+    if (maxQuantity < 1) return;
     setCart((currentCart) => {
       const itemAlreadyInCart = currentCart.find(
         (item) => item.id === product.id,
       );
 
       if (itemAlreadyInCart) {
-        const nextQuantity = Math.min(itemAlreadyInCart.quantity + quantity, product.stock);
+        const nextQuantity = Math.min(itemAlreadyInCart.quantity + quantity, maxQuantity);
         return currentCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: nextQuantity }
@@ -76,15 +80,15 @@ function App() {
         );
       }
 
-      return [...currentCart, { ...product, quantity: Math.min(quantity, product.stock) }];
+      return [...currentCart, { ...product, quantity: Math.min(quantity, maxQuantity) }];
     });
   }
 
   function updateQuantity(id, quantity) {
-    if (quantity < 1) return;
+    if (!Number.isInteger(quantity) || quantity < 1) return;
     setCart((currentCart) =>
       currentCart.map((item) =>
-        item.id === id ? { ...item, quantity: Math.min(quantity, item.stock) } : item,
+        item.id === id ? { ...item, quantity: Math.min(quantity, item.stock, 99) } : item,
       ),
     );
   }
@@ -116,12 +120,13 @@ function App() {
         }
       />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/login" element={<Login onAuth={handleAuth} />} />
-      <Route path="/register" element={<Register onAuth={handleAuth} />} />
-      <Route path="/dashboard" element={authLoading ? <Loading /> : user ? <Dashboard user={user} /> : <Navigate to="/login" replace />} />
-      <Route path="/dashboard/orders" element={authLoading ? <Loading /> : user ? <UserOrders /> : <Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login onAuth={handleAuth} user={user} authLoading={authLoading} />} />
+      <Route path="/register" element={<Register onAuth={handleAuth} user={user} authLoading={authLoading} />} />
+      <Route path="/dashboard" element={authLoading ? <Loading /> : !user ? <Navigate to="/login" replace /> : user.role === "admin" ? <Navigate to="/admin" replace /> : <Dashboard user={user} />} />
+      <Route path="/dashboard/orders" element={authLoading ? <Loading /> : !user ? <Navigate to="/login" replace /> : user.role === "admin" ? <Navigate to="/admin" replace /> : <UserOrders />} />
       <Route path="/profile" element={authLoading ? <Loading /> : user ? <Profile user={user} onUserUpdate={handleUserUpdate} /> : <Navigate to="/login" replace />} />
       <Route path="/admin" element={authLoading ? <Loading /> : !user ? <Navigate to="/login" replace /> : user.role !== "admin" ? <Navigate to="/dashboard" replace /> : <AdminDashboard />} />
+      <Route path="/admin/orders" element={authLoading ? <Loading /> : !user ? <Navigate to="/login" replace /> : user.role !== "admin" ? <Navigate to="/dashboard" replace /> : <AdminOrders />} />
       <Route path="/admin/stock" element={authLoading ? <Loading /> : !user ? <Navigate to="/login" replace /> : user.role !== "admin" ? <Navigate to="/dashboard" replace /> : <AdminStock />} />
     </Routes>
   );
@@ -129,9 +134,9 @@ function App() {
   return (
     <div className="flex min-h-screen flex-col font-sans text-zinc-900">
       {dashboardArea ? (
-        <div className="flex flex-1 flex-col md:flex-row">
+        <div className="dashboard-shell flex min-h-screen flex-1 flex-col md:flex-row">
           <DashboardNav user={user} onLogout={handleLogout} />
-          <div className="min-w-0 flex-1">{routes}</div>
+          <div className="dashboard-content min-w-0 flex-1">{routes}</div>
         </div>
       ) : (
         <>

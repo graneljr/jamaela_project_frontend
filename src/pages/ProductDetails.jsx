@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 function ProductDetails({ products, addToCart }) {
@@ -6,6 +6,11 @@ function ProductDetails({ products, addToCart }) {
   const product = products.find((item) => item.id === Number(id));
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState("");
+  const maxQuantity = product ? Math.min(product.stock, 99) : 1;
+
+  useEffect(() => {
+    setQuantity((current) => Math.min(current, Math.max(1, maxQuantity)));
+  }, [id, maxQuantity]);
 
   if (!product) {
     return (
@@ -17,7 +22,7 @@ function ProductDetails({ products, addToCart }) {
   }
 
   function handleAddToCart() {
-    if (product.stock < 1) return;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > maxQuantity || product.stock < 1) return;
     addToCart(product, quantity);
     setMessage(`${quantity} item${quantity > 1 ? "s" : ""} added to your cart!`);
   }
@@ -39,9 +44,9 @@ function ProductDetails({ products, addToCart }) {
         <div className="mt-8">
           <p className="mb-3 text-sm font-bold text-zinc-700">Quantity</p>
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 rounded-full border border-sky-200 font-bold text-sky-700">−</button>
+            <button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 rounded-full border border-sky-200 font-bold text-sky-700 disabled:opacity-40">−</button>
             <span className="w-6 text-center font-extrabold">{quantity}</span>
-            <button type="button" disabled={quantity >= product.stock} onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="h-10 w-10 rounded-full border border-sky-200 font-bold text-sky-700 disabled:opacity-40">+</button>
+            <button type="button" aria-label="Increase quantity" disabled={quantity >= maxQuantity} onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))} className="h-10 w-10 rounded-full border border-sky-200 font-bold text-sky-700 disabled:opacity-40">+</button>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-const categories = ["All", "Plushies", "Accessories", "Stationery", "Home"];
+const categories = ["All", "plushies", "accessories", "stationery", "home"];
 
 function CategoryFilter({ selectedCategory, setSelectedCategory, hideAll = false }) {
   const shownCategories = hideAll ? categories.slice(1) : categories;
@@ -16,7 +16,7 @@ function CategoryFilter({ selectedCategory, setSelectedCategory, hideAll = false
               : "border-sky-100 bg-white text-zinc-700 hover:border-sky-300"
           }`}
         >
-          {category}
+          {category.toUpperCase()}
         </button>
       ))}
     </div>

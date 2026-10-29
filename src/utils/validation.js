@@ -48,11 +48,6 @@ export function validateProduct(form) {
   if (!form.description.trim() || form.description.trim().length > 1000) return "Product details are required and must be 1,000 characters or fewer.";
   if (String(form.price).trim() === "" || !Number.isFinite(Number(form.price)) || Number(form.price) < 0 || Number(form.price) > 99999999 || !/^\d+(\.\d{1,2})?$/.test(String(form.price).trim())) return "Enter a price from ₱0 to ₱99,999,999 with up to 2 decimal places.";
   if (String(form.stock).trim() === "" || !/^\d+$/.test(String(form.stock).trim()) || Number(form.stock) > 1000000) return "Starting stock must be a whole number from 0 to 1,000,000.";
-  try {
-    const image = new URL(form.image.trim());
-    if (!["http:", "https:"].includes(image.protocol)) throw new Error();
-  } catch {
-    return "Enter a valid image URL starting with http:// or https://.";
-  }
+  if (!form.imageFile && !form.image) return "Upload a product image file.";
   return "";
 }

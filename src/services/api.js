@@ -31,6 +31,23 @@ async function request(path, options = {}) {
   return body;
 }
 
+async function requestFormData(path, formData) {
+  const headers = {};
+  const token = getStoredToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}${path}`, { method: "POST", body: formData, headers });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 401 && !path.startsWith("/auth/login")) {
+      clearAuth();
+      window.dispatchEvent(new Event("auth-expired"));
+    }
+    throw new Error(body.message || "The server could not complete your request.");
+  }
+  return body;
+}
+
 export const api = {
   getProducts: () => request("/products"),
   register: (details) => request("/auth/register", { method: "POST", body: JSON.stringify(details) }),
@@ -45,5 +62,14 @@ export const api = {
   getAdminProducts: () => request("/admin/products"),
   addProductStock: (id, quantity) => request(`/admin/products/${id}/stock`, { method: "POST", body: JSON.stringify({ quantity }) }),
   updateProductInventory: (id, inventory) => request(`/admin/products/${id}/inventory`, { method: "PATCH", body: JSON.stringify(inventory) }),
-  createProduct: (product) => request("/admin/products", { method: "POST", body: JSON.stringify(product) }),
+  createProduct: (product) => {
+    const formData = new FormData();
+    formData.append("name", product.name);
+    formData.append("category", product.category);
+    formData.append("price", String(product.price));
+    formData.append("stock", String(product.stock));
+    formData.append("description", product.description);
+    if (product.imageFile) formData.append("image", product.imageFile);
+    return requestFormData("/admin/products", formData);
+  },
 };
